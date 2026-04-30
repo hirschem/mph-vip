@@ -51,9 +51,9 @@ export default function BillingPage() {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
-    const lineHeight = 5.6;
-    const smallGap = 0.8;
-    const mediumGap = 2.1;
+    const lineHeight = 4.8;
+    const smallGap = 0.4;
+    const mediumGap = 1.3;
     const maxY = 280;
     const headerLines = [
       "MPH Construction and Painting",
@@ -63,8 +63,8 @@ export default function BillingPage() {
       "9426 Troon Village Way",
       "Lone Tree, CO 80124",
     ];
-    const headerLineHeight = 5.2;
-    const bodyStartGap = 5.6;
+    const headerLineHeight = 4.7;
+    const bodyStartGap = 4.2;
     const sectionTitleGap = mediumGap;
     const sectionTitles = new Set([
       "Invoice",
@@ -100,12 +100,12 @@ export default function BillingPage() {
       .filter((line) => line.trim() !== "Company Name");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.text(headerLines[0], margin, y);
     y += headerLineHeight;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     headerLines.slice(1).forEach((line) => {
       doc.text(line, margin, y);
       y += headerLineHeight;
@@ -134,7 +134,7 @@ export default function BillingPage() {
 
         const formattedPrice = formatPriceLine(trimmedLine);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10.5);
+        doc.setFontSize(10);
         doc.text(formattedPrice, pageWidth - margin, y, { align: "right" });
         y += lineHeight;
         y += nextIsNumberedItem ? mediumGap : smallGap;
@@ -151,10 +151,10 @@ export default function BillingPage() {
 
         if (isSectionTitle) {
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(12.3);
+          doc.setFontSize(11.1);
         } else {
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(11);
+          doc.setFontSize(10.2);
         }
 
         doc.text(wrappedLine, margin, y);
