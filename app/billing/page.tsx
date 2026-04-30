@@ -47,25 +47,31 @@ export default function BillingPage() {
       return;
     }
 
-    const pdf = new jsPDF();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const lines = transcription.split("\n");
-    const marginX = 10;
-    const marginY = 10;
+    const doc = new jsPDF();
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxWidth = pageWidth - margin * 2;
     const lineHeight = 7;
-    let y = marginY;
+    const maxY = 280;
+    let y = margin;
 
-    lines.forEach((line) => {
-      if (y > pageHeight - marginY) {
-        pdf.addPage();
-        y = marginY;
-      }
+    const sourceLines = transcription.split("\n");
 
-      pdf.text(line, marginX, y);
-      y += lineHeight;
+    sourceLines.forEach((sourceLine) => {
+      const wrappedLines = doc.splitTextToSize(sourceLine || " ", maxWidth);
+
+      wrappedLines.forEach((wrappedLine: string) => {
+        if (y > maxY) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.text(wrappedLine, margin, y);
+        y += lineHeight;
+      });
     });
 
-    pdf.save("billing-document.pdf");
+    doc.save("billing-document.pdf");
   };
 
   const handleFormatInvoice = async () => {
