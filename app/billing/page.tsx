@@ -51,7 +51,9 @@ export default function BillingPage() {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
-    const lineHeight = 6.5;
+    const lineHeight = 5.6;
+    const smallGap = 0.8;
+    const mediumGap = 2.1;
     const maxY = 280;
     const headerLines = [
       "MPH Construction and Painting",
@@ -61,9 +63,9 @@ export default function BillingPage() {
       "9426 Troon Village Way",
       "Lone Tree, CO 80124",
     ];
-    const headerLineHeight = 6;
-    const bodyStartGap = 6;
-    const sectionTitleGap = 3;
+    const headerLineHeight = 5.2;
+    const bodyStartGap = 5.6;
+    const sectionTitleGap = mediumGap;
     const sectionTitles = new Set([
       "Invoice",
       "Homeowner Address",
@@ -73,28 +75,56 @@ export default function BillingPage() {
       "Notes",
     ]);
     const isPriceLine = (line: string) => /^\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})$/.test(line.trim());
+    const isNumberedItemLine = (line: string) => /^\d+[.)]\s+/.test(line.trim());
+    const isBulletLine = (line: string) => /^-\s+/.test(line.trim());
+    const formatPriceLine = (line: string) => {
+      const trimmed = line.trim();
+      if (!isPriceLine(trimmed)) {
+        return trimmed;
+      }
+
+      const numericValue = Number.parseFloat(trimmed.replace(/[$,]/g, ""));
+      if (Number.isNaN(numericValue)) {
+        return trimmed;
+      }
+
+      return `$${numericValue.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    };
     let y = margin;
 
+    const sourceLines = transcription
+      .split("\n")
+      .filter((line) => line.trim() !== "Company Name");
+
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text(headerLines[0], margin, y);
     y += headerLineHeight;
 
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     headerLines.slice(1).forEach((line) => {
       doc.text(line, margin, y);
       y += headerLineHeight;
     });
 
+    const dividerY = y + 0.8;
+    doc.setLineWidth(0.2);
+    doc.line(margin, dividerY, pageWidth - margin, dividerY);
+
     y += bodyStartGap;
-    doc.setFontSize(12);
 
-    const sourceLines = transcription
-      .split("\n")
-      .filter((line) => line.trim() !== "Company Name");
-
-    sourceLines.forEach((sourceLine) => {
+    sourceLines.forEach((sourceLine, index) => {
       const trimmedLine = sourceLine.trim();
       const isSectionTitle = sectionTitles.has(trimmedLine);
+      const nextTrimmedLine = sourceLines[index + 1]?.trim() ?? "";
+      const nextIsPriceLine = isPriceLine(nextTrimmedLine);
+      const nextIsNumberedItem = isNumberedItemLine(nextTrimmedLine);
+      const isBullet = isBulletLine(trimmedLine);
+      const nextIsBullet = isBulletLine(nextTrimmedLine);
 
       if (isPriceLine(trimmedLine)) {
         if (y > maxY) {
@@ -102,8 +132,12 @@ export default function BillingPage() {
           y = margin;
         }
 
-        doc.text(trimmedLine, pageWidth - margin, y, { align: "right" });
+        const formattedPrice = formatPriceLine(trimmedLine);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.text(formattedPrice, pageWidth - margin, y, { align: "right" });
         y += lineHeight;
+        y += nextIsNumberedItem ? mediumGap : smallGap;
         return;
       }
 
@@ -115,17 +149,29 @@ export default function BillingPage() {
           y = margin;
         }
 
+        if (isSectionTitle) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(12.3);
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(11);
+        }
+
         doc.text(wrappedLine, margin, y);
         y += lineHeight;
       });
 
       if (isSectionTitle) {
         y += sectionTitleGap;
+      } else if (isBullet || nextIsBullet) {
+        y += smallGap;
+      } else if (!nextIsPriceLine) {
+        y += smallGap;
+      }
 
-        if (y > maxY) {
-          doc.addPage();
-          y = margin;
-        }
+      if (y > maxY) {
+        doc.addPage();
+        y = margin;
       }
     });
 
