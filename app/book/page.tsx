@@ -8,8 +8,8 @@ export default function BookPage() {
   const [transcription, setTranscription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files ? Array.from(event.target.files) : [];
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
     setSelectedFiles(files);
   };
 
@@ -46,7 +46,7 @@ export default function BookPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Book Chapter</h1>
           <p className="mt-2 text-zinc-600">
-            Upload handwritten book chapter images for word-for-word transcription.
+            Upload or take photos of your handwritten document. You can select multiple images at once.
           </p>
         </div>
 
