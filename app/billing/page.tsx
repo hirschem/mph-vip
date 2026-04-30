@@ -8,6 +8,7 @@ export default function BillingPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [transcription, setTranscription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFormatting, setIsFormatting] = useState(false);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -65,6 +66,29 @@ export default function BillingPage() {
     });
 
     pdf.save("billing-document.pdf");
+  };
+
+  const handleFormatInvoice = async () => {
+    if (!transcription.trim() || isFormatting) {
+      return;
+    }
+
+    setIsFormatting(true);
+
+    try {
+      const response = await fetch("/api/format-billing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: transcription }),
+      });
+
+      const data: { text?: string } = await response.json();
+      setTranscription(data.text ?? transcription);
+    } finally {
+      setIsFormatting(false);
+    }
   };
 
   return (
@@ -134,6 +158,14 @@ export default function BillingPage() {
             placeholder="Transcribed text will appear here."
             className="min-h-56 w-full rounded-xl border border-zinc-300 bg-white p-4 text-sm text-zinc-800 shadow-sm outline-none focus:border-zinc-500"
           />
+          <button
+            type="button"
+            onClick={handleFormatInvoice}
+            disabled={!transcription.trim() || isFormatting}
+            className="mt-3 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-5 py-3 font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
+          >
+            {isFormatting ? "Formatting..." : "Format as Professional Invoice"}
+          </button>
         </div>
 
         <div>
