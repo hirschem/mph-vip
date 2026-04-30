@@ -5,10 +5,39 @@ import { ChangeEvent, useState } from "react";
 
 export default function BillingPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [transcription, setTranscription] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
     setSelectedFiles(files);
+  };
+
+  const handleGenerateTranscription = async () => {
+    if (selectedFiles.length === 0 || isLoading) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data: { text?: string } = await response.json();
+      setTranscription(data.text ?? "");
+    } catch {
+      setTranscription("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,10 +80,11 @@ export default function BillingPage() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            disabled
-            className="inline-flex items-center justify-center rounded-lg bg-zinc-300 px-5 py-3 font-medium text-zinc-600 opacity-80 cursor-not-allowed"
+            onClick={handleGenerateTranscription}
+            disabled={selectedFiles.length === 0 || isLoading}
+            className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-5 py-3 font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
           >
-            Generate Transcription
+            {isLoading ? "Generating..." : "Generate Transcription"}
           </button>
           <button
             type="button"
@@ -63,6 +93,19 @@ export default function BillingPage() {
           >
             Export PDF
           </button>
+        </div>
+
+        <div>
+          <label htmlFor="transcription-result" className="mb-3 block text-sm font-medium text-zinc-700">
+            Transcription Result
+          </label>
+          <textarea
+            id="transcription-result"
+            value={transcription}
+            onChange={(event) => setTranscription(event.target.value)}
+            placeholder="Transcribed text will appear here."
+            className="min-h-56 w-full rounded-xl border border-zinc-300 bg-white p-4 text-sm text-zinc-800 shadow-sm outline-none focus:border-zinc-500"
+          />
         </div>
 
         <div>
