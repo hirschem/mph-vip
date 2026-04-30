@@ -37,6 +37,7 @@ Formatting:
   - Clear spacing between sections
   - Use "-" for simple bullet points where needed
   - Place prices on their own line directly under each item
+  - Make the company name bold or larger than the rest of the header
 - Ensure the output is easy to read when exported to PDF.
 
 Return only the formatted text.`;

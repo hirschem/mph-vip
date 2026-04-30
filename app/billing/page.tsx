@@ -53,7 +53,30 @@ export default function BillingPage() {
     const maxWidth = pageWidth - margin * 2;
     const lineHeight = 7;
     const maxY = 280;
+    const headerLines = [
+      "MPH Construction and Painting",
+      "(303)-249-4563",
+      "(720)-883-5097",
+      "mhirsch60@hotmail.com",
+      "9426 Troon Village Way",
+      "Lone Tree, CO 80124",
+    ];
+    const headerLineHeight = 6;
+    const bodyStartGap = 8;
     let y = margin;
+
+    doc.setFontSize(14);
+    doc.text(headerLines[0], margin, y);
+    y += headerLineHeight;
+
+    doc.setFontSize(11);
+    headerLines.slice(1).forEach((line) => {
+      doc.text(line, margin, y);
+      y += headerLineHeight;
+    });
+
+    y += bodyStartGap;
+    doc.setFontSize(12);
 
     const sourceLines = transcription.split("\n");
 
