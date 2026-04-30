@@ -51,6 +51,9 @@ export default function BillingPage() {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
+    const priceColumnWidth = 34;
+    const descriptionMaxWidth = maxWidth - priceColumnWidth;
+    const priceColumnX = pageWidth - margin;
     const lineHeight = 4.8;
     const smallGap = 0.4;
     const mediumGap = 1.3;
@@ -93,6 +96,66 @@ export default function BillingPage() {
         maximumFractionDigits: 2,
       })}`;
     };
+    const consumedPriceIndexes = new Set<number>();
+    const getNextRenderableNonEmptyIndex = (startIndex: number) => {
+      for (let idx = startIndex; idx < sourceLines.length; idx += 1) {
+        const trimmed = sourceLines[idx].trim();
+        if (!trimmed || consumedPriceIndexes.has(idx)) {
+          continue;
+        }
+
+        return idx;
+      }
+
+      return -1;
+    };
+    const findItemBlockEndIndex = (startIndex: number) => {
+      for (let idx = startIndex + 1; idx < sourceLines.length; idx += 1) {
+        const trimmed = sourceLines[idx].trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        if (isNumberedItemLine(trimmed) || sectionTitles.has(trimmed)) {
+          return idx;
+        }
+      }
+
+      return sourceLines.length;
+    };
+    const findPairedPriceIndexForItem = (startIndex: number) => {
+      // Pair only the first price found before the next numbered item or section title.
+      for (let idx = startIndex + 1; idx < sourceLines.length; idx += 1) {
+        const trimmed = sourceLines[idx].trim();
+
+        if (!trimmed) {
+          continue;
+        }
+
+        if (isNumberedItemLine(trimmed) || sectionTitles.has(trimmed)) {
+          break;
+        }
+
+        if (isPriceLine(trimmed)) {
+          return idx;
+        }
+      }
+
+      return -1;
+    };
+    const getNextNonEmptyIndexInBlock = (startIndex: number, blockEndIndex: number) => {
+      for (let idx = startIndex; idx < blockEndIndex; idx += 1) {
+        if (consumedPriceIndexes.has(idx)) {
+          continue;
+        }
+
+        if (sourceLines[idx].trim() !== "") {
+          return idx;
+        }
+      }
+
+      return -1;
+    };
     let y = margin;
 
     const sourceLines = transcription
@@ -117,16 +180,146 @@ export default function BillingPage() {
 
     y += bodyStartGap;
 
-    sourceLines.forEach((sourceLine, index) => {
+    doc.setLineWidth(0.1);
+    doc.line(priceColumnX - priceColumnWidth, dividerY + 1, priceColumnX - priceColumnWidth, maxY);
+
+    let i = 0;
+    while (i < sourceLines.length) {
+      const sourceLine = sourceLines[i];
       const trimmedLine = sourceLine.trim();
+
+      if (consumedPriceIndexes.has(i)) {
+        i += 1;
+        continue;
+      }
+
+      if (!trimmedLine) {
+        y += smallGap;
+        i += 1;
+        continue;
+      }
+
       const isSectionTitle = sectionTitles.has(trimmedLine);
-      const nextTrimmedLine = sourceLines[index + 1]?.trim() ?? "";
-      const nextIsPriceLine = isPriceLine(nextTrimmedLine);
-      const nextIsNumberedItem = isNumberedItemLine(nextTrimmedLine);
-      const isBullet = isBulletLine(trimmedLine);
-      const nextIsBullet = isBulletLine(nextTrimmedLine);
+
+      if (isSectionTitle) {
+        if (y > maxY) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11.1);
+        doc.text(trimmedLine, margin, y);
+        y += lineHeight;
+        y += sectionTitleGap;
+        i += 1;
+        continue;
+      }
+
+      if (isNumberedItemLine(trimmedLine)) {
+        if (y > maxY) {
+          doc.addPage();
+          y = margin;
+        }
+
+        const blockEndIndex = findItemBlockEndIndex(i);
+        const pairedPriceIndex = findPairedPriceIndexForItem(i);
+        const wrappedItemLines = doc.splitTextToSize(sourceLine, descriptionMaxWidth);
+        const blockStartY = y;
+
+        wrappedItemLines.forEach((wrappedLine: string) => {
+          if (y > maxY) {
+            doc.addPage();
+            y = margin;
+          }
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10.2);
+          doc.text(wrappedLine, margin, y);
+          y += lineHeight;
+        });
+
+        for (let detailIndex = i + 1; detailIndex < blockEndIndex; detailIndex += 1) {
+          if (detailIndex === pairedPriceIndex || consumedPriceIndexes.has(detailIndex)) {
+            continue;
+          }
+
+          const detailLine = sourceLines[detailIndex];
+          const trimmedDetailLine = detailLine.trim();
+          if (!trimmedDetailLine) {
+            y += smallGap;
+            continue;
+          }
+
+          if (isPriceLine(trimmedDetailLine)) {
+            if (consumedPriceIndexes.has(detailIndex)) {
+              continue;
+            }
+
+            if (y > maxY) {
+              doc.addPage();
+              y = margin;
+            }
+
+            const formattedPrice = formatPriceLine(trimmedDetailLine);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(formattedPrice, priceColumnX, y, { align: "right" });
+            consumedPriceIndexes.add(detailIndex);
+            y += lineHeight;
+            continue;
+          }
+
+          const nextNonEmptyDetailIndex = getNextNonEmptyIndexInBlock(detailIndex + 1, blockEndIndex);
+          const pairedDetailPriceIndex =
+            nextNonEmptyDetailIndex !== -1 && isPriceLine(sourceLines[nextNonEmptyDetailIndex].trim())
+              ? nextNonEmptyDetailIndex
+              : -1;
+          const detailStartY = y;
+
+          const wrappedDetailLines = doc.splitTextToSize(detailLine, descriptionMaxWidth);
+          wrappedDetailLines.forEach((wrappedDetailLine: string) => {
+            if (y > maxY) {
+              doc.addPage();
+              y = margin;
+            }
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10.2);
+            doc.text(wrappedDetailLine, margin, y);
+            y += lineHeight;
+          });
+
+          if (pairedDetailPriceIndex !== -1 && !consumedPriceIndexes.has(pairedDetailPriceIndex)) {
+            const formattedPairedDetailPrice = formatPriceLine(sourceLines[pairedDetailPriceIndex]);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(formattedPairedDetailPrice, priceColumnX, detailStartY, { align: "right" });
+            consumedPriceIndexes.add(pairedDetailPriceIndex);
+          }
+        }
+
+        if (pairedPriceIndex !== -1 && !consumedPriceIndexes.has(pairedPriceIndex)) {
+          const formattedPrice = formatPriceLine(sourceLines[pairedPriceIndex]);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(formattedPrice, priceColumnX, blockStartY, { align: "right" });
+          consumedPriceIndexes.add(pairedPriceIndex);
+        }
+
+        const afterItemIndex = getNextRenderableNonEmptyIndex(blockEndIndex);
+        y += smallGap;
+
+        i = blockEndIndex;
+        continue;
+      }
 
       if (isPriceLine(trimmedLine)) {
+        if (consumedPriceIndexes.has(i)) {
+          i += 1;
+          continue;
+        }
+
         if (y > maxY) {
           doc.addPage();
           y = margin;
@@ -135,13 +328,16 @@ export default function BillingPage() {
         const formattedPrice = formatPriceLine(trimmedLine);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.text(formattedPrice, pageWidth - margin, y, { align: "right" });
+        doc.text(formattedPrice, priceColumnX, y, { align: "right" });
+        consumedPriceIndexes.add(i);
         y += lineHeight;
-        y += nextIsNumberedItem ? mediumGap : smallGap;
-        return;
+        y += smallGap;
+        i += 1;
+        continue;
       }
 
-      const wrappedLines = doc.splitTextToSize(sourceLine || " ", maxWidth);
+      const wrappedLines = doc.splitTextToSize(sourceLine, descriptionMaxWidth);
+      const isBullet = isBulletLine(trimmedLine);
 
       wrappedLines.forEach((wrappedLine: string) => {
         if (y > maxY) {
@@ -149,31 +345,25 @@ export default function BillingPage() {
           y = margin;
         }
 
-        if (isSectionTitle) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11.1);
-        } else {
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10.2);
-        }
-
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10.2);
         doc.text(wrappedLine, margin, y);
         y += lineHeight;
       });
 
-      if (isSectionTitle) {
-        y += sectionTitleGap;
-      } else if (isBullet || nextIsBullet) {
+      const afterLineIndex = getNextRenderableNonEmptyIndex(i + 1);
+      const nextTrimmedLine = afterLineIndex === -1 ? "" : sourceLines[afterLineIndex].trim();
+
+      if (isBullet || isBulletLine(nextTrimmedLine)) {
         y += smallGap;
-      } else if (!nextIsPriceLine) {
+      } else if (isNumberedItemLine(nextTrimmedLine)) {
+        y += mediumGap;
+      } else {
         y += smallGap;
       }
 
-      if (y > maxY) {
-        doc.addPage();
-        y = margin;
-      }
-    });
+      i += 1;
+    }
 
     doc.save("billing-document.pdf");
   };

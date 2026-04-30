@@ -22,6 +22,10 @@ Rules:
 - Do NOT remove, alter, or invent any information.
 - Do NOT include placeholder text such as "Company Name".
 - Do NOT include generic labels unless they are part of the actual content.
+- Keep each priced line item as its own numbered item.
+- Do not merge multiple priced items into one paragraph.
+- If a line has its own price, keep it as a separate item.
+- Do not add "[Price not specified]".
 - Improve wording to be clear, professional, and slightly more polished.
 - Maintain a practical residential contractor tone (not overly corporate or salesy).
 - Organize content into simple sections when appropriate (e.g., Invoice, Project Address, Scope of Work, Materials, Labor, Notes).
