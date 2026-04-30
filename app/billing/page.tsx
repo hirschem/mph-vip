@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChangeEvent, useState } from "react";
+import { jsPDF } from "jspdf";
 
 export default function BillingPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -38,6 +39,32 @@ export default function BillingPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleExportPdf = () => {
+    if (!transcription.trim()) {
+      return;
+    }
+
+    const pdf = new jsPDF();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const lines = transcription.split("\n");
+    const marginX = 10;
+    const marginY = 10;
+    const lineHeight = 7;
+    let y = marginY;
+
+    lines.forEach((line) => {
+      if (y > pageHeight - marginY) {
+        pdf.addPage();
+        y = marginY;
+      }
+
+      pdf.text(line, marginX, y);
+      y += lineHeight;
+    });
+
+    pdf.save("billing-document.pdf");
   };
 
   return (
@@ -88,8 +115,9 @@ export default function BillingPage() {
           </button>
           <button
             type="button"
-            disabled
-            className="inline-flex items-center justify-center rounded-lg bg-zinc-300 px-5 py-3 font-medium text-zinc-600 opacity-80 cursor-not-allowed"
+            onClick={handleExportPdf}
+            disabled={!transcription.trim()}
+            className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-5 py-3 font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
           >
             Export PDF
           </button>
