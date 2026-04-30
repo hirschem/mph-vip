@@ -20,6 +20,8 @@ Tone Rules:
 Rules:
 - Keep ALL original items and details.
 - Do NOT remove, alter, or invent any information.
+- Do NOT include placeholder text such as "Company Name".
+- Do NOT include generic labels unless they are part of the actual content.
 - Improve wording to be clear, professional, and slightly more polished.
 - Maintain a practical residential contractor tone (not overly corporate or salesy).
 - Organize content into simple sections when appropriate (e.g., Invoice, Project Address, Scope of Work, Materials, Labor, Notes).
@@ -31,7 +33,7 @@ Formatting:
 - Use clean spacing and consistent line breaks for readability.
 - Use simple section titles such as:
   Invoice
-  Project Address
+  Homeowner Address
   Scope of Work
 - Format like a professional document:
   - Clear spacing between sections

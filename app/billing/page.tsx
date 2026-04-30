@@ -51,7 +51,7 @@ export default function BillingPage() {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
-    const lineHeight = 7;
+    const lineHeight = 6.5;
     const maxY = 280;
     const headerLines = [
       "MPH Construction and Painting",
@@ -62,7 +62,17 @@ export default function BillingPage() {
       "Lone Tree, CO 80124",
     ];
     const headerLineHeight = 6;
-    const bodyStartGap = 8;
+    const bodyStartGap = 6;
+    const sectionTitleGap = 3;
+    const sectionTitles = new Set([
+      "Invoice",
+      "Homeowner Address",
+      "Scope of Work",
+      "Materials",
+      "Labor",
+      "Notes",
+    ]);
+    const isPriceLine = (line: string) => /^\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})$/.test(line.trim());
     let y = margin;
 
     doc.setFontSize(14);
@@ -78,9 +88,25 @@ export default function BillingPage() {
     y += bodyStartGap;
     doc.setFontSize(12);
 
-    const sourceLines = transcription.split("\n");
+    const sourceLines = transcription
+      .split("\n")
+      .filter((line) => line.trim() !== "Company Name");
 
     sourceLines.forEach((sourceLine) => {
+      const trimmedLine = sourceLine.trim();
+      const isSectionTitle = sectionTitles.has(trimmedLine);
+
+      if (isPriceLine(trimmedLine)) {
+        if (y > maxY) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.text(trimmedLine, pageWidth - margin, y, { align: "right" });
+        y += lineHeight;
+        return;
+      }
+
       const wrappedLines = doc.splitTextToSize(sourceLine || " ", maxWidth);
 
       wrappedLines.forEach((wrappedLine: string) => {
@@ -92,6 +118,15 @@ export default function BillingPage() {
         doc.text(wrappedLine, margin, y);
         y += lineHeight;
       });
+
+      if (isSectionTitle) {
+        y += sectionTitleGap;
+
+        if (y > maxY) {
+          doc.addPage();
+          y = margin;
+        }
+      }
     });
 
     doc.save("billing-document.pdf");
