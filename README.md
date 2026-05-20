@@ -31,24 +31,19 @@ MPH VIP converts handwritten images into clean digital documents using AI. The a
 ## Screenshots
 
 ### Home
-
-_Add screenshot here_
+![Home](./screenshots/readme-img1.png)
 
 ### Invoice Workflow
-
-_Add screenshot here_
+![Invoice Workflow](./screenshots/readme-img2.png)
 
 ### Generated Invoice PDF
-
-_Add screenshot here_
+![Invoice PDF](./screenshots/readme-img3.png)
 
 ### Book Formatting Workflow
-
-_Add screenshot here_
+![Book Workflow](./screenshots/readme-img4.png)
 
 ### DOCX Export
-
-_Add screenshot here_
+![DOCX Export](./screenshots/readme-img5.png)
 
 ## Purpose
 
