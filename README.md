@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MPH VIP
 
-## Getting Started
+AI-powered document transcription and formatting tool for handwritten contractor notes and manuscript pages.
 
-First, run the development server:
+## Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+MPH VIP converts handwritten images into clean digital documents using AI. The app supports two workflows:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Invoice Generator** - converts handwritten contractor notes into polished invoices with PDF export.
+- **Book Formatting** - converts handwritten manuscript pages into clean formatted text with DOCX export.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Multi-image upload
+- AI transcription from handwritten notes
+- Professional invoice formatting
+- PDF export for billing documents
+- DOCX export for book/manuscript pages
+- Built for non-technical users and real field workflows
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js
+- TypeScript
+- OpenAI API
+- jsPDF
+- docx
+- file-saver
+- Tailwind CSS
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Screenshots
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Home
 
-## Deploy on Vercel
+_Add screenshot here_
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Invoice Workflow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+_Add screenshot here_
+
+### Generated Invoice PDF
+
+_Add screenshot here_
+
+### Book Formatting Workflow
+
+_Add screenshot here_
+
+### DOCX Export
+
+_Add screenshot here_
+
+## Purpose
+
+This project was built as a practical AI workflow tool for converting handwritten documents into usable, client-ready outputs. It demonstrates applied prompt engineering, multimodal AI document processing, and export-focused document generation.
+
+## Status
+
+Portfolio MVP. Core workflows are functional.
