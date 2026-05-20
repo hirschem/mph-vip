@@ -24,6 +24,7 @@ export async function POST(request: Request) {
         return {
           type: "input_image" as const,
           image_url: `data:${mimeType};base64,${base64}`,
+          detail: "high" as const,
         };
       })
     );
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       input: [
         {
           role: "user",
-          content: [{ type: "input_text", text: TRANSCRIBE_PROMPT }, ...imageInputs],
+          content: [{ type: "input_text" as const, text: TRANSCRIBE_PROMPT }, ...imageInputs],
         },
       ],
     });

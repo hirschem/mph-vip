@@ -51,12 +51,12 @@ export default function BillingPage() {
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
-    const priceColumnWidth = 34;
-    const descriptionMaxWidth = maxWidth - priceColumnWidth;
+    const priceColumnWidth = 30;
+    const descriptionMaxWidth = maxWidth - priceColumnWidth - 2.5;
     const priceColumnX = pageWidth - margin;
-    const lineHeight = 4.8;
-    const smallGap = 0.4;
-    const mediumGap = 1.3;
+    const lineHeight = 4.5;
+    const smallGap = 0.2;
+    const mediumGap = 0.9;
     const maxY = 280;
     const headerLines = [
       "MPH Construction and Painting",
@@ -143,24 +143,16 @@ export default function BillingPage() {
 
       return -1;
     };
-    const getNextNonEmptyIndexInBlock = (startIndex: number, blockEndIndex: number) => {
-      for (let idx = startIndex; idx < blockEndIndex; idx += 1) {
-        if (consumedPriceIndexes.has(idx)) {
-          continue;
-        }
-
-        if (sourceLines[idx].trim() !== "") {
-          return idx;
-        }
-      }
-
-      return -1;
-    };
     let y = margin;
 
     const sourceLines = transcription
       .split("\n")
       .filter((line) => line.trim() !== "Company Name");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("Invoice", margin, y);
+    y += 9;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -180,8 +172,10 @@ export default function BillingPage() {
 
     y += bodyStartGap;
 
-    doc.setLineWidth(0.1);
+    doc.setDrawColor(140);
+    doc.setLineWidth(0.08);
     doc.line(priceColumnX - priceColumnWidth, dividerY + 1, priceColumnX - priceColumnWidth, maxY);
+    doc.setDrawColor(0);
 
     let i = 0;
     while (i < sourceLines.length) {
@@ -202,6 +196,11 @@ export default function BillingPage() {
       const isSectionTitle = sectionTitles.has(trimmedLine);
 
       if (isSectionTitle) {
+        if (trimmedLine === "Invoice") {
+          i += 1;
+          continue;
+        }
+
         if (y > maxY) {
           doc.addPage();
           y = margin;
@@ -270,14 +269,10 @@ export default function BillingPage() {
             continue;
           }
 
-          const nextNonEmptyDetailIndex = getNextNonEmptyIndexInBlock(detailIndex + 1, blockEndIndex);
-          const pairedDetailPriceIndex =
-            nextNonEmptyDetailIndex !== -1 && isPriceLine(sourceLines[nextNonEmptyDetailIndex].trim())
-              ? nextNonEmptyDetailIndex
-              : -1;
-          const detailStartY = y;
-
           const wrappedDetailLines = doc.splitTextToSize(detailLine, descriptionMaxWidth);
+          if (y > margin) {
+            y -= 0.25;
+          }
           wrappedDetailLines.forEach((wrappedDetailLine: string) => {
             if (y > maxY) {
               doc.addPage();
@@ -285,18 +280,10 @@ export default function BillingPage() {
             }
 
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(10.2);
+            doc.setFontSize(9.2);
             doc.text(wrappedDetailLine, margin, y);
             y += lineHeight;
           });
-
-          if (pairedDetailPriceIndex !== -1 && !consumedPriceIndexes.has(pairedDetailPriceIndex)) {
-            const formattedPairedDetailPrice = formatPriceLine(sourceLines[pairedDetailPriceIndex]);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.text(formattedPairedDetailPrice, priceColumnX, detailStartY, { align: "right" });
-            consumedPriceIndexes.add(pairedDetailPriceIndex);
-          }
         }
 
         if (pairedPriceIndex !== -1 && !consumedPriceIndexes.has(pairedPriceIndex)) {
@@ -307,7 +294,6 @@ export default function BillingPage() {
           consumedPriceIndexes.add(pairedPriceIndex);
         }
 
-        const afterItemIndex = getNextRenderableNonEmptyIndex(blockEndIndex);
         y += smallGap;
 
         i = blockEndIndex;
@@ -338,6 +324,7 @@ export default function BillingPage() {
 
       const wrappedLines = doc.splitTextToSize(sourceLine, descriptionMaxWidth);
       const isBullet = isBulletLine(trimmedLine);
+      const isHomeownerAddressLabel = trimmedLine === "Homeowner Address:";
 
       wrappedLines.forEach((wrappedLine: string) => {
         if (y > maxY) {
@@ -345,8 +332,8 @@ export default function BillingPage() {
           y = margin;
         }
 
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10.2);
+        doc.setFont("helvetica", isHomeownerAddressLabel ? "bold" : "normal");
+        doc.setFontSize(isHomeownerAddressLabel ? 11.1 : 10.2);
         doc.text(wrappedLine, margin, y);
         y += lineHeight;
       });
@@ -356,6 +343,8 @@ export default function BillingPage() {
 
       if (isBullet || isBulletLine(nextTrimmedLine)) {
         y += smallGap;
+      } else if (nextTrimmedLine === "Scope of Work") {
+        y += mediumGap;
       } else if (isNumberedItemLine(nextTrimmedLine)) {
         y += mediumGap;
       } else {
