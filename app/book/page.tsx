@@ -8,11 +8,147 @@ import { saveAs } from "file-saver";
 export default function BookPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [transcription, setTranscription] = useState("");
+  const [isCompressing, setIsCompressing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     setSelectedFiles(files);
+  };
+
+  const getOrientation = async (file: File): Promise<number> => {
+    const buffer = await file.arrayBuffer();
+    const view = new DataView(buffer);
+
+    if (view.getUint16(0, false) !== 0xffd8) {
+      return 1;
+    }
+
+    let offset = 2;
+    const length = view.byteLength;
+
+    while (offset < length) {
+      const marker = view.getUint16(offset, false);
+      offset += 2;
+
+      if (marker === 0xffe1) {
+        const app1Length = view.getUint16(offset, false);
+        const exifHeader = view.getUint32(offset + 2, false);
+        if (exifHeader !== 0x45786966) {
+          break;
+        }
+
+        const little = view.getUint16(offset + 8, false) === 0x4949;
+        let nextOffset = offset + 10 + view.getUint32(offset + 14, little);
+        const tags = view.getUint16(nextOffset, little);
+        nextOffset += 2;
+
+        for (let i = 0; i < tags; i += 1) {
+          const tagOffset = nextOffset + i * 12;
+          if (view.getUint16(tagOffset, little) === 0x0112) {
+            return view.getUint16(tagOffset + 8, little);
+          }
+        }
+        break;
+      }
+
+      if ((marker & 0xff00) !== 0xff00) {
+        break;
+      }
+
+      offset += view.getUint16(offset, false);
+    }
+
+    return 1;
+  };
+
+  const loadImage = async (file: File): Promise<HTMLImageElement> => {
+    return new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(img.src);
+        resolve(img);
+      };
+      img.onerror = (error) => {
+        URL.revokeObjectURL(img.src);
+        reject(error);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const compressImageFile = async (file: File): Promise<File> => {
+    if (!file.type.startsWith("image/")) {
+      return file;
+    }
+
+    const orientation = await getOrientation(file);
+    const image = await loadImage(file);
+    const maxWidth = 1600;
+    const width = Math.min(image.width, maxWidth);
+    const height = Math.round((image.height * width) / image.width);
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return file;
+    }
+
+    if (orientation > 4) {
+      canvas.width = height;
+      canvas.height = width;
+    } else {
+      canvas.width = width;
+      canvas.height = height;
+    }
+
+    switch (orientation) {
+      case 2:
+        context.translate(width, 0);
+        context.scale(-1, 1);
+        break;
+      case 3:
+        context.translate(width, height);
+        context.rotate(Math.PI);
+        break;
+      case 4:
+        context.translate(0, height);
+        context.scale(1, -1);
+        break;
+      case 5:
+        context.rotate(0.5 * Math.PI);
+        context.scale(1, -1);
+        break;
+      case 6:
+        context.rotate(0.5 * Math.PI);
+        context.translate(0, -height);
+        break;
+      case 7:
+        context.rotate(0.5 * Math.PI);
+        context.translate(width, -height);
+        context.scale(-1, 1);
+        break;
+      case 8:
+        context.rotate(-0.5 * Math.PI);
+        context.translate(-width, 0);
+        break;
+      default:
+        break;
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.75);
+    });
+
+    if (!blob) {
+      return file;
+    }
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    const outputName = `${baseName}.jpg`;
+    return new File([blob], outputName, { type: "image/jpeg" });
   };
 
   const handleGenerateTranscription = async () => {
@@ -21,10 +157,21 @@ export default function BookPage() {
     }
 
     setIsLoading(true);
+    setIsCompressing(true);
 
     try {
+      const compressedFiles = await Promise.all(
+        selectedFiles.map(async (file) => {
+          try {
+            return await compressImageFile(file);
+          } catch {
+            return file;
+          }
+        }),
+      );
+
       const formData = new FormData();
-      selectedFiles.forEach((file) => {
+      compressedFiles.forEach((file) => {
         formData.append("images", file);
       });
 
@@ -38,6 +185,7 @@ export default function BookPage() {
     } catch {
       setTranscription("");
     } finally {
+      setIsCompressing(false);
       setIsLoading(false);
     }
   };
@@ -92,11 +240,19 @@ export default function BookPage() {
             {selectedFiles.length === 0 ? (
               <p className="mt-2 text-sm text-zinc-500">No files selected.</p>
             ) : (
-              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {selectedFiles.map((file) => (
-                  <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>
-                ))}
-              </ul>
+              <>
+                <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+                  {selectedFiles.map((file) => (
+                    <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-sm text-zinc-500">
+                  Images will be compressed to JPEG (max width 1600px, quality 0.75) before upload.
+                </p>
+                {isCompressing && (
+                  <p className="mt-2 text-sm text-zinc-600">Compressing images before upload…</p>
+                )}
+              </>
             )}
           </div>
         </div>
